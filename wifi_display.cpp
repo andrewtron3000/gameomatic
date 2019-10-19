@@ -15,7 +15,8 @@
 char ssid[] = SECRET_SSID; // your network SSID
 char pass[] = SECRET_PASS; // your network password
 // IPAddress serverIp(10, 0, 0, 101);
-IPAddress serverIp(10, 0, 0, 4);
+// IPAddress serverIp(10, 0, 0, 4);
+IPAddress serverIp(192,168,1,155);
 uint16_t serverPort = 2390;
 
 extern Adafruit_Arcada arcada;
@@ -24,7 +25,7 @@ int status = WL_IDLE_STATUS;
 uint16_t *frameBuffer;
 size_t frameIdx;
 constexpr size_t FRAME_BUFFER_BYTES = ARCADA_TFT_WIDTH * ARCADA_TFT_HEIGHT * sizeof(frameBuffer[0]);
-constexpr size_t FRAME_TIMEOUT = 5000;
+constexpr size_t FRAME_TIMEOUT = 60000;
 
 WiFiClient client;
 
@@ -80,11 +81,6 @@ void WifiDisplay::setup()
     error("Failed to allocate framebuffer");
   frameBuffer = arcada.getFrameBuffer();
   bzero(frameBuffer, FRAME_BUFFER_BYTES);
-}
-
-void WifiDisplay::loop()
-{
-  delay(100); // Frame limit at 10 fps.
 
   Serial.print("Connecting to server: ");
   Serial.print(serverIp);
@@ -92,12 +88,25 @@ void WifiDisplay::loop()
   Serial.println(serverPort);
 
   if (!client.connect(serverIp, serverPort))
+  {
+    Serial.println("Not connected!");
     return;
+  }
+}
+
+void WifiDisplay::loop()
+{
+  delay(100); // Frame limit at 10 fps.
+
   setColor(255, 255, 255);
   bzero(frameBuffer, FRAME_BUFFER_BYTES);
 
   // Read the packet into buffer.
   long start = millis();
+  Serial.print("Client Available: ");
+  Serial.print(client.available());
+  Serial.print(" Client Connected: ");
+  Serial.println(client.connected());
   while (client.available() || client.connected())
   {
     setColor(255, 0, 0);
@@ -111,10 +120,6 @@ void WifiDisplay::loop()
     if (millis() - start > FRAME_TIMEOUT)
       break;
   };
-
-  setColor(255, 128, 0);
-  client.stop();
-  setColor(128, 255, 0);
 
   // Print number of bytes.
   Serial.print("Got ");
